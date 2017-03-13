@@ -76,7 +76,7 @@ void dj_output(void *arg, jack_nframes_t nframes,
 		  l->s->playing = 0;
 		  out[i] = 0;
 	     } else {
-		  out[i] = l->s->buffer->samples[l->s->buffer->playing++];
+		  out[i] = audio_buffer_interpolate(l->s->buffer);
 	     }
 	} else {
 	    out[i] = 0;

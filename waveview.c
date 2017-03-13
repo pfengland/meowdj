@@ -4,6 +4,7 @@
 
 waveview* waveview_create(void) {
      waveview *k = malloc(sizeof(*k));
+     k->pitch = slider_create();
      k->x = 0;
      k->y = 0;
      k->w = 0;
@@ -14,6 +15,7 @@ waveview* waveview_create(void) {
 }
 
 void waveview_free(waveview *k) {
+     slider_free(k->pitch);
      free(k);
 }
 
@@ -23,9 +25,11 @@ void waveview_draw(waveview *k, SDL_Surface *screen, int x, int y) {
      k->y = y;
      k->h = 300;
      k->w = screen->w - x;
+
+     slider_draw(k->pitch, screen, k->x, k->y, k->h);
      
-     SDL_Rect um = {x: k->x, y: k->y,
-		    w: k->w, h: k->h};
+     SDL_Rect um = {x: k->x + k->pitch->w, y: k->y,
+		    w: k->w - k->pitch->w, h: k->h};
 
      SDL_FillRect(screen, &um, SDL_MapRGB(screen->format, 0,0,0));
 
@@ -33,10 +37,10 @@ void waveview_draw(waveview *k, SDL_Surface *screen, int x, int y) {
 
     // half of vertical size to calculate where to draw the sample
     int halfy = k->h/2;
-    int samplewidth = k->buffer->count / k->w;
+    int samplewidth = k->buffer->count / k->w - k->pitch->w;
 
     // draw a recangle for each horizontal pixel
-    for (x=0; x < k->w; x++) {
+    for (x=0; x < k->w - k->pitch->w; x++) {
 
 	// find out which samples
         // need to be drawn in this location
@@ -71,10 +75,11 @@ void waveview_draw(waveview *k, SDL_Surface *screen, int x, int y) {
 	int y = halfy + minsample * halfy;
 	int height = (maxsample - minsample) * halfy;
 	if (!height) height = 1;
-	SDL_Rect rum = {x: k->x + x, y: k->y + y, w: 1, h: height};
+	SDL_Rect rum = {x: k->x + k->pitch->w + x,
+			y: k->y + y, w: 1, h: height};
 	SDL_FillRect(screen, &rum, SDL_MapRGB(screen->format, 100,0,100));
 
-        SDL_Rect mr = {x: k->x + x, y: k->y, w: 1, h: k->h};
+        SDL_Rect mr = {x: k->x + k->pitch->w + x, y: k->y, w: 1, h: k->h};
         if (start_marker) {
             SDL_FillRect(screen, &mr, SDL_MapRGB(screen->format, 100,100,0));
         } else if (end_marker) {

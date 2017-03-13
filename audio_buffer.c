@@ -19,6 +19,7 @@ audio_buffer* audio_buffer_init(audio_buffer *buffer) {
     buffer->start = 0;
     buffer->end = 0;
     buffer->playing = 0;
+    buffer->speed = 1;
 
     return buffer;
 }
@@ -37,4 +38,10 @@ void audio_buffer_free_samples(audio_buffer *buffer) {
         free(buffer->samples);
         buffer->samples = NULL;
     }
+}
+
+float audio_buffer_interpolate(audio_buffer *buffer) {
+     float s = buffer->samples[(int)buffer->playing];
+     buffer->playing += buffer->speed;
+     return s;
 }

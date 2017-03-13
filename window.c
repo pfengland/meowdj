@@ -122,6 +122,8 @@ void window_handleEvents(window *w) {
 	       case SDLK_SPACE:
 		    // toggle playing
 		    w->s->playing = ! w->s->playing;
+		    if (w->s->playing) printf("playing\n");
+		    else printf("stopping\n");
 	       default:
 		    break;
 	       }
