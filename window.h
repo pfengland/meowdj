@@ -14,7 +14,8 @@ static const int window_repeat = 100;
 typedef struct window_s window;
 struct window_s {
      SDL_Surface *screen;
-     waveview *wave;
+     waveview *wave1;
+     waveview *wave2;
      libraryview *library;
      session *s;
      int update;

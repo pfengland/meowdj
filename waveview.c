@@ -31,11 +31,11 @@ int waveview_needupdate(waveview *w) {
      return w->update || w->pitch->update;
 }
 
-void waveview_draw(waveview *k, SDL_Surface *screen, int x, int y) {
+void waveview_draw(waveview *k, SDL_Surface *screen, int x, int y, int active) {
 
      k->x = x;
      k->y = y;
-     k->h = 300;
+     k->h = 200;
      k->w = screen->w - x;
 
      slider_draw(k->pitch, screen, k->x, k->y, k->h);
@@ -43,7 +43,11 @@ void waveview_draw(waveview *k, SDL_Surface *screen, int x, int y) {
      SDL_Rect um = {x: k->x + k->pitch->w, y: k->y,
 		    w: k->w - k->pitch->w, h: k->h};
 
-     SDL_FillRect(screen, &um, SDL_MapRGB(screen->format, 0,0,0));
+     if (active) {
+	  SDL_FillRect(screen, &um, SDL_MapRGB(screen->format, 100,0,0));
+     } else {
+	  SDL_FillRect(screen, &um, SDL_MapRGB(screen->format, 0,0,0));
+     }
 
      if (!k->buffer->samples) return;
 

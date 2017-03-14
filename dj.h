@@ -20,8 +20,9 @@ dj* dj_create(void);
 void dj_init(dj *l);
 void dj_stop(dj *l);
 void dj_output(void *arg, jack_nframes_t nframes,
-		   jack_default_audio_sample_t *in,
-		   jack_default_audio_sample_t *out);
+	       jack_default_audio_sample_t *in,
+	       jack_default_audio_sample_t *out1,
+	       jack_default_audio_sample_t *out2);
 void dj_process(dj *l);
 void dj_free(dj *l);
 void dj_cc(void *arg, unsigned int num, unsigned int val);

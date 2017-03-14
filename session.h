@@ -3,12 +3,13 @@
 
 #include "library.h"
 #include "audio_buffer.h"
+#include "deck.h"
 
 typedef struct session_s session;
 struct session_s {
      library *l;
-     audio_buffer *buffer;
-     int playing;
+     deck *deck1;
+     deck *deck2;
      int autoplay;
 };
 

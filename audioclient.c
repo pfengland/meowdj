@@ -8,7 +8,8 @@ audioclient* audioclient_create(void) {
      audioclient *c = malloc(sizeof(*c));
      c->client = NULL;
      c->input_port = NULL;
-     c->output_port = NULL;
+     c->output_port1 = NULL;
+     c->output_port2 = NULL;
      c->ringbuffer = NULL;
      c->capturing = 0;
      c->capture_stop = 0;
@@ -48,15 +49,18 @@ int audioclient_process(jack_nframes_t nframes, void *client) {
         c->capture_data = 1;
     }
 
-    jack_default_audio_sample_t *out;
-    out = jack_port_get_buffer(c->output_port, nframes);
+    jack_default_audio_sample_t *out1;
+    jack_default_audio_sample_t *out2;
+    out1 = jack_port_get_buffer(c->output_port1, nframes);
+    out2 = jack_port_get_buffer(c->output_port2, nframes);
 
     // call callback to get playback data
     if (c->process_callback) {
-	 c->process_callback(c->callback_arg, nframes, in, out);
+	 c->process_callback(c->callback_arg, nframes, in, out1, out2);
     } else {
 	 for (int i=0; i<nframes; i++) {
-	      out[i] = 0;
+	      out1[i] = 0;
+	      out2[i] = 0;
 	 }
     }
     
@@ -135,12 +139,19 @@ void audioclient_init(audioclient *c) {
 	exit(1);
     }
 
-    if ((c->output_port = jack_port_register(c->client, "output",
+    if ((c->output_port1 = jack_port_register(c->client, "output1",
 					     JACK_DEFAULT_AUDIO_TYPE,
 					     JackPortIsOutput, 0)) == 0) {
 	printf("can't register output port\n");
 	jack_client_close(c->client);
 	exit(1);
+    }
+    if ((c->output_port2 = jack_port_register(c->client, "output2",
+					      JACK_DEFAULT_AUDIO_TYPE,
+					      JackPortIsOutput, 0)) == 0) {
+	 printf("can't register output port\n");
+	 jack_client_close(c->client);
+	 exit(1);
     }
 
     // activate the port before we connect

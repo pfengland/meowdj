@@ -26,14 +26,16 @@ window* window_create(session *s) {
 
      SDL_WM_SetCaption("MEOW", NULL);
 
-     w->wave = waveview_create(s->buffer);
+     w->wave1 = waveview_create(s->deck1->buffer);
+     w->wave2 = waveview_create(s->deck2->buffer);
      w->library = libraryview_create(w->s->l);
 
      return w;
 }
 
 void window_free(window *w) {
-     waveview_free(w->wave);
+     waveview_free(w->wave1);
+     waveview_free(w->wave2);
      libraryview_free(w->library);
      TTF_Quit();
      SDL_Quit();
@@ -56,8 +58,9 @@ void window_update(window *w) {
 	  return;
      }
 
-     if (w->update || waveview_needupdate(w->wave) || w->library->update ||
-	 w->s->playing) {
+     if (w->update || waveview_needupdate(w->wave1) ||
+	 waveview_needupdate(w->wave2) || w->library->update ||
+	 w->s->deck1->playing || w->s->deck2->playing) {
 
 	  w->update = 0;
 
@@ -65,7 +68,10 @@ void window_update(window *w) {
 		       SDL_MapRGB(w->screen->format, 0,100,100));
 
 	  libraryview_draw(w->library, w->screen, 0, 0);
-	  waveview_draw(w->wave, w->screen, w->library->w, 0);
+	  waveview_draw(w->wave1, w->screen, w->library->w, 0,
+			w->s->deck1->active);
+	  waveview_draw(w->wave2, w->screen, w->library->w, w->wave1->h,
+			w->s->deck2->active);
 
 	  SDL_Flip(w->screen);
 
@@ -111,20 +117,38 @@ void window_handleEvents(window *w) {
 					    window_timeout, w);
 		    break;
 	       case SDLK_RETURN:
-		    // stop playing
-		    w->s->playing = 0;
-		    // load the song
-		    s = songlist_getselected(w->s->l->sl);
-		    w->s->l->sl->playing = w->s->l->sl->selected;
-		    printf("loading song %s\n", s->filename);
-		    song_load(s, w->s->buffer);
-		    w->update = 1;
+		    if (w->s->deck1->active) {
+			 // stop playing
+			 w->s->deck1->playing = 0;
+			 // load the song
+			 s = songlist_getselected(w->s->l->sl);
+			 w->s->l->sl->playing = w->s->l->sl->selected;
+			 printf("loading song %s on deck 1\n", s->filename);
+			 song_load(s, w->s->deck1->buffer);
+			 w->update = 1;
+		    } else if (w->s->deck2->active) {
+			 // stop playing
+			 w->s->deck2->playing = 0;
+			 // load the song
+			 s = songlist_getselected(w->s->l->sl);
+			 w->s->l->sl->playing = w->s->l->sl->selected;
+			 printf("loading song %s on deck 2\n", s->filename);
+			 song_load(s, w->s->deck2->buffer);
+			 w->update = 1;
+		    }
 		    break;
 	       case SDLK_SPACE:
-		    // toggle playing
-		    w->s->playing = ! w->s->playing;
-		    if (w->s->playing) printf("playing\n");
-		    else printf("stopping\n");
+		    if (w->s->deck1->active) {
+			 // toggle playing
+			 w->s->deck1->playing = ! w->s->deck1->playing;
+			 if (w->s->deck1->playing) printf("playing deck 1\n");
+			 else printf("stopping deck 1\n");
+		    } else if (w->s->deck2->active) {
+			 // toggle playing
+			 w->s->deck2->playing = ! w->s->deck2->playing;
+			 if (w->s->deck2->playing) printf("playing deck 2\n");
+			 else printf("stopping deck 2\n");
+		    }
 	       default:
 		    break;
 	       }
@@ -145,33 +169,34 @@ void window_handleEvents(window *w) {
 	       w->quit = 1;
 	  } else if (event.type == SDL_VIDEORESIZE) {
 	       int opts = SDL_SWSURFACE|SDL_RESIZABLE;
-	       w->screen = SDL_SetVideoMode(event.resize.w, event.resize.h, 32, opts);
+	       w->screen = SDL_SetVideoMode(event.resize.w, event.resize.h,
+					    32, opts);
 	       w->update = 1;
 	  } else if (event.type == SDL_MOUSEBUTTONDOWN) {
 	       int x = event.button.x;
 	       int y = event.button.y;
-	       if (x >= w->wave->x && x < w->wave->x + w->wave->w &&
-		   y >= w->wave->y && y < w->wave->y + w->wave->h) {
+	       if (x >= w->wave1->x && x < w->wave1->x + w->wave1->w &&
+		   y >= w->wave1->y && y < w->wave1->y + w->wave1->h) {
 
-		    waveview_mousedown(w->wave, x, y);
+		    waveview_mousedown(w->wave1, x, y);
 	       }
 	  } else if (event.type == SDL_MOUSEBUTTONUP) {
 	       int x = event.button.x;
 	       int y = event.button.y;
 
-	       if (x >= w->wave->x && x < w->wave->x + w->wave->w &&
-		   y >= w->wave->y && y < w->wave->y + w->wave->h) {
+	       if (x >= w->wave1->x && x < w->wave1->x + w->wave1->w &&
+		   y >= w->wave1->y && y < w->wave1->y + w->wave1->h) {
 
-		    waveview_mouseup(w->wave, x, y);
+		    waveview_mouseup(w->wave1, x, y);
 	       }
 
 	  } else if (event.type == SDL_MOUSEMOTION) {
 	       int x = event.motion.x;
 	       int y = event.motion.y;
-	       if (x >= w->wave->x && x < w->wave->x + w->wave->w &&
-		   y >= w->wave->y && y < w->wave->y + w->wave->h) {
+	       if (x >= w->wave1->x && x < w->wave1->x + w->wave1->w &&
+		   y >= w->wave1->y && y < w->wave1->y + w->wave1->h) {
 
-		    waveview_mousemove(w->wave, x, y);
+		    waveview_mousemove(w->wave1, x, y);
 	       }
 	  }
      }

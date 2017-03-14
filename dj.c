@@ -9,7 +9,6 @@ dj* dj_create(void) {
      l->midi = midiclient_create();
      l->s = session_create();
      l->w = window_create(l->s);
-     l->w->wave->buffer = l->s->buffer;
      l->autoplay = 0;
      return l;
 }
@@ -28,20 +27,31 @@ void dj_stop(dj *l) {
 
 void dj_cc(void *arg, unsigned int num, unsigned int val) {
 
-     dj *l = arg;
+     dj *d = arg;
 
      printf("cc: %d, %d\n", num, val);
 
      if (num == 118 && val == 127) {
-	  audioclient_start_capture(l->audio);
+	  audioclient_start_capture(d->audio);
      } else if (num == 116 && val == 127) {
-	  audioclient_stop_capture(l->audio);
-     } else if (num == 73) {
+	  audioclient_stop_capture(d->audio);
+     } else if (num == 32) {
 	  double ratio = (double)val / 127.0;
-	  audio_buffer_setspeed(l->s->buffer, ratio * 2.0);
-	  l->w->update = 1;	  
+	  if (d->s->deck1->active)
+	       deck_setspeed(d->s->deck1, ratio * 2.0);
+	  if (d->s->deck2->active)
+	       deck_setspeed(d->s->deck2, ratio * 2.0);
+	  d->w->update = 1;
+     } else if (num == 24) {
+	  d->s->deck1->active = 1;
+	  d->s->deck2->active = 0;
+	  d->w->update = 1;
+     } else if (num == 25) {
+	  d->s->deck1->active = 0;
+	  d->s->deck2->active = 1;
+	  d->w->update = 1;
      }
-	  /*	  SF_INFO info = {frames: l->buffer->count,
+	  /*	  SF_INFO info = {frames: d->buffer->count,
 			 samplerate: 44100,
 			 channels: 1,
 			 format: SF_FORMAT_WAV|SF_FORMAT_FLOAT,
@@ -52,61 +62,65 @@ void dj_cc(void *arg, unsigned int num, unsigned int val) {
 	       printf("opening sound file for writing failed");
 	       return;
 	  }
-	  int wc = sf_writef_double(f, (double*)l->buffer->samples,
-				    l->buffer->count);
+	  int wc = sf_writef_double(f, (double*)d->buffer->samples,
+				    d->buffer->count);
 	  printf("%d samples written\n", wc);
-	  if (wc != l->buffer->count) printf("sample write count mismatch\n");
+	  if (wc != d->buffer->count) printf("sample write count mismatch\n");
 	  sf_write_sync(f);
 	  sf_close(f);
      } */
 }
 
 void dj_output(void *arg, jack_nframes_t nframes,
-		   jack_default_audio_sample_t *in,
-		   jack_default_audio_sample_t *out) {
+	       jack_default_audio_sample_t *in,
+	       jack_default_audio_sample_t *out1,
+	       jack_default_audio_sample_t *out2) {
 
-     dj *l = arg;
+     dj *d = arg;
+     float deck1s = 0.0, deck2s = 0.0;
 
      // calculate each sample for the current buffer
     for (int i=0; i<nframes; i++) {
 
         // capture - soft playthru
-        if (l->audio->capturing) {
+	 //        if (d->audio->capturing) {
+	 //	    captures = in[i];
+	 //	}
+	if (d->s->deck1->playing) {
+	     if (!deck_output(d->s->deck1, &deck1s)) {
 
-	    out[i] = in[i];
+		  d->s->deck1->playing = 0;
+		  
+		  if (d->s->autoplay &&
+		      d->s->l->sl->playing <
+		      d->s->l->sl->songs->count - 1) {
 
-	} else if (l->s->playing) {
-	     // play the requested samples
-	     // if we're off the end stop playing
-	     if (i >= l->s->buffer->count) {
-		  l->s->playing = 0;
-		  out[i] = 0;
-	     } else {
-		  if (!audio_buffer_interpolate(l->s->buffer, &out[i])) {
-		       l->s->playing = 0;
-		       if (l->s->autoplay &&
-			   l->s->l->sl->playing <
-			   l->s->l->sl->songs->count - 1) {
-			    l->s->l->sl->playing++;
-			    l->autoplay = 1;
-		       }
+		       d->s->l->sl->playing++;
+		       d->autoplay = 1;
 		  }
 	     }
-	} else {
-	    out[i] = 0;
 	}
+	if (d->s->deck2->playing) {
+	     if (!deck_output(d->s->deck2, &deck2s)) {
+		  d->s->deck2->playing = 0;
+	     }
+	}
+	out1[i] = deck1s;
+	out2[i] = deck2s;
     }
 }
 
 void dj_process(dj *l) {
-     audioclient_process_capture(l->audio, l->s->buffer);
+
+     audioclient_process_capture(l->audio, l->s->deck1->buffer);
+
      if (l->audio->capturing) l->w->update = 1;
      window_mainLoop(l->w);
      if (l->autoplay) {
 	  l->autoplay = 0;
 	  song_load(songlist_songat(l->s->l->sl, l->s->l->sl->playing),
-		    l->s->buffer);
-	  l->s->playing = 1;
+		    l->s->deck1->buffer);
+	  l->s->deck1->playing = 1;
 	  l->w->update = 1;
      }
 }

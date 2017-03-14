@@ -9,14 +9,16 @@
 
 typedef void (*process_callback_t)(void *arg, jack_nframes_t nframes,
 				   jack_default_audio_sample_t *in,
-				   jack_default_audio_sample_t *out);
+				   jack_default_audio_sample_t *out1,
+				   jack_default_audio_sample_t *out2);
 
 
 typedef struct audioclient_s audioclient;
 struct audioclient_s {
      jack_client_t *client;
      jack_port_t *input_port;
-     jack_port_t *output_port;
+     jack_port_t *output_port1;
+     jack_port_t *output_port2;
      jack_ringbuffer_t *ringbuffer;
      int capturing;
      int capture_start;

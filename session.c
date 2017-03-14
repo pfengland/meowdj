@@ -3,9 +3,10 @@
 
 session* session_create(void) {
      session *s = malloc(sizeof(*s));
-     s->playing = 0;
      s->l = library_create();
-     s->buffer = audio_buffer_create();
+     s->deck1 = deck_create();
+     s->deck1->active = 1;
+     s->deck2 = deck_create();
      s->autoplay = 1;
      return s;
 }
@@ -15,7 +16,8 @@ void session_init(session *s) {
 }
 
 void session_free(session *s) {
-     audio_buffer_free(s->buffer);
+     deck_free(s->deck1);
+     deck_free(s->deck2);
      library_free(s->l);
      free(s);
 }
