@@ -8,6 +8,7 @@ typedef struct songlist_s songlist;
 struct songlist_s {
      dynamicarray *songs;
      int selected;
+     int playing;
 };
 
 songlist* songlist_create(void);

@@ -26,7 +26,7 @@ window* window_create(session *s) {
 
      SDL_WM_SetCaption("MEOW", NULL);
 
-     w->wave = waveview_create();
+     w->wave = waveview_create(s->buffer);
      w->library = libraryview_create(w->s->l);
 
      return w;
@@ -56,7 +56,7 @@ void window_update(window *w) {
 	  return;
      }
 
-     if (w->update || w->wave->update || w->library->update ||
+     if (w->update || waveview_needupdate(w->wave) || w->library->update ||
 	 w->s->playing) {
 
 	  w->update = 0;
@@ -115,6 +115,7 @@ void window_handleEvents(window *w) {
 		    w->s->playing = 0;
 		    // load the song
 		    s = songlist_getselected(w->s->l->sl);
+		    w->s->l->sl->playing = w->s->l->sl->selected;
 		    printf("loading song %s\n", s->filename);
 		    song_load(s, w->s->buffer);
 		    w->update = 1;
@@ -146,9 +147,32 @@ void window_handleEvents(window *w) {
 	       int opts = SDL_SWSURFACE|SDL_RESIZABLE;
 	       w->screen = SDL_SetVideoMode(event.resize.w, event.resize.h, 32, opts);
 	       w->update = 1;
-	  } else if (event.type == SDL_MOUSEBUTTONDOWN ||
-		     event.type == SDL_MOUSEBUTTONUP) {
-	       
+	  } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+	       int x = event.button.x;
+	       int y = event.button.y;
+	       if (x >= w->wave->x && x < w->wave->x + w->wave->w &&
+		   y >= w->wave->y && y < w->wave->y + w->wave->h) {
+
+		    waveview_mousedown(w->wave, x, y);
+	       }
+	  } else if (event.type == SDL_MOUSEBUTTONUP) {
+	       int x = event.button.x;
+	       int y = event.button.y;
+
+	       if (x >= w->wave->x && x < w->wave->x + w->wave->w &&
+		   y >= w->wave->y && y < w->wave->y + w->wave->h) {
+
+		    waveview_mouseup(w->wave, x, y);
+	       }
+
+	  } else if (event.type == SDL_MOUSEMOTION) {
+	       int x = event.motion.x;
+	       int y = event.motion.y;
+	       if (x >= w->wave->x && x < w->wave->x + w->wave->w &&
+		   y >= w->wave->y && y < w->wave->y + w->wave->h) {
+
+		    waveview_mousemove(w->wave, x, y);
+	       }
 	  }
      }
 }

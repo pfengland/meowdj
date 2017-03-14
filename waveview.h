@@ -13,8 +13,13 @@ struct waveview_s {
      slider *pitch;
 };
 
-waveview* waveview_create(void);
+waveview* waveview_create(audio_buffer *b);
 void waveview_free(waveview *k);
 void waveview_draw(waveview *k, SDL_Surface *screen, int x, int y);
-
+void waveview_mousedown(waveview *w, int x, int y);
+void waveview_mouseup(waveview *w, int x, int y);
+void waveview_mousemove(waveview *w, int x, int y);
+int waveview_needupdate(waveview *w);
+void waveview_speedchanged(void *arg, double val);
+     
 #endif

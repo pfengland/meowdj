@@ -2,7 +2,7 @@
 #include <SDL/SDL_ttf.h>
 #include <stdlib.h>
 
-waveview* waveview_create(void) {
+waveview* waveview_create(audio_buffer *b) {
      waveview *k = malloc(sizeof(*k));
      k->pitch = slider_create();
      k->x = 0;
@@ -10,13 +10,25 @@ waveview* waveview_create(void) {
      k->w = 0;
      k->h = 0;
      k->update = 0;
-     k->buffer = NULL;
+     k->buffer = b;
+     audio_buffer_speedchange_callback(b, &waveview_speedchanged, k);
+
      return k;
+}
+
+void waveview_speedchanged(void *arg, double val) {
+     waveview *w = arg;
+     w->pitch->value = val;
+     w->pitch->update = 1;
 }
 
 void waveview_free(waveview *k) {
      slider_free(k->pitch);
      free(k);
+}
+
+int waveview_needupdate(waveview *w) {
+     return w->update || w->pitch->update;
 }
 
 void waveview_draw(waveview *k, SDL_Surface *screen, int x, int y) {
@@ -66,7 +78,7 @@ void waveview_draw(waveview *k, SDL_Surface *screen, int x, int y) {
                 start_marker = 1;
             } else if (si == k->buffer->end) {
                 end_marker = 1;
-            } else if (si == k->buffer->playing) {
+            } else if (si == (int)k->buffer->playing) {
                 play_marker = 1;
             }
 	}
@@ -89,3 +101,28 @@ void waveview_draw(waveview *k, SDL_Surface *screen, int x, int y) {
         }
     }
 }
+
+void waveview_mousedown(waveview *w, int x, int y) {
+     if (x >= w->pitch->x && x < w->pitch->x + w->pitch->w &&
+	 y >= w->pitch->y && x < w->pitch->y + w->pitch->h) {
+
+	  slider_mousedown(w->pitch, x, y);
+     }
+}
+
+void waveview_mouseup(waveview *w, int x, int y) {
+          if (x >= w->pitch->x && x < w->pitch->x + w->pitch->w &&
+	 y >= w->pitch->y && x < w->pitch->y + w->pitch->h) {
+
+	  slider_mouseup(w->pitch, x, y);
+     }
+}
+
+void waveview_mousemove(waveview *w, int x, int y) {
+          if (x >= w->pitch->x && x < w->pitch->x + w->pitch->w &&
+	 y >= w->pitch->y && x < w->pitch->y + w->pitch->h) {
+
+	  slider_mousemove(w->pitch, x, y);
+     }
+}
+

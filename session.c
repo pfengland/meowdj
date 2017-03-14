@@ -6,6 +6,7 @@ session* session_create(void) {
      s->playing = 0;
      s->l = library_create();
      s->buffer = audio_buffer_create();
+     s->autoplay = 1;
      return s;
 }
 

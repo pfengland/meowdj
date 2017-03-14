@@ -9,6 +9,7 @@ struct session_s {
      library *l;
      audio_buffer *buffer;
      int playing;
+     int autoplay;
 };
 
 session* session_create(void);

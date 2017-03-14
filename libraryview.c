@@ -46,6 +46,7 @@ void libraryview_draw(libraryview *k, SDL_Surface *screen, int x, int y) {
      SDL_Color color={0,0,0};
      SDL_Color bgcolor={255,100,100};
      SDL_Color selcolor={255,255,100};
+     SDL_Color playcolor={255,255,255};
      int padding = 1;
      int fontheight = TTF_FontHeight((font));
      SDL_Rect tum = {x: x + padding, y: y + padding,
@@ -59,6 +60,10 @@ void libraryview_draw(libraryview *k, SDL_Surface *screen, int x, int y) {
 	  if (i == k->l->sl->selected)
 	       text_surface=TTF_RenderText_Shaded(font,s->filename,color,
 						  selcolor);
+	  else if (i == k->l->sl->playing)
+	       text_surface=TTF_RenderText_Shaded(font,s->filename,color,
+						  playcolor);
+
 	  else
 	       text_surface=TTF_RenderText_Shaded(font,s->filename,color,
 						  bgcolor);

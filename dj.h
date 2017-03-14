@@ -1,11 +1,6 @@
 #ifndef H_DJ
 #define H_DJ
 
-/* dj
-record files
-organize files
-load files */
-
 #include "midiclient.h"
 #include "audioclient.h"
 #include "window.h"
@@ -18,6 +13,7 @@ struct dj_s {
      midiclient *midi;
      window *w;
      session *s;
+     int autoplay;
 };
 
 dj* dj_create(void);

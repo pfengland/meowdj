@@ -10,6 +10,7 @@ dj* dj_create(void) {
      l->s = session_create();
      l->w = window_create(l->s);
      l->w->wave->buffer = l->s->buffer;
+     l->autoplay = 0;
      return l;
 }
 
@@ -35,6 +36,11 @@ void dj_cc(void *arg, unsigned int num, unsigned int val) {
 	  audioclient_start_capture(l->audio);
      } else if (num == 116 && val == 127) {
 	  audioclient_stop_capture(l->audio);
+     } else if (num == 73) {
+	  double ratio = (double)val / 127.0;
+	  audio_buffer_setspeed(l->s->buffer, ratio * 2.0);
+	  l->w->update = 1;	  
+     }
 	  /*	  SF_INFO info = {frames: l->buffer->count,
 			 samplerate: 44100,
 			 channels: 1,
@@ -51,8 +57,8 @@ void dj_cc(void *arg, unsigned int num, unsigned int val) {
 	  printf("%d samples written\n", wc);
 	  if (wc != l->buffer->count) printf("sample write count mismatch\n");
 	  sf_write_sync(f);
-	  sf_close(f); */
-     }
+	  sf_close(f);
+     } */
 }
 
 void dj_output(void *arg, jack_nframes_t nframes,
@@ -76,7 +82,15 @@ void dj_output(void *arg, jack_nframes_t nframes,
 		  l->s->playing = 0;
 		  out[i] = 0;
 	     } else {
-		  out[i] = audio_buffer_interpolate(l->s->buffer);
+		  if (!audio_buffer_interpolate(l->s->buffer, &out[i])) {
+		       l->s->playing = 0;
+		       if (l->s->autoplay &&
+			   l->s->l->sl->playing <
+			   l->s->l->sl->songs->count - 1) {
+			    l->s->l->sl->playing++;
+			    l->autoplay = 1;
+		       }
+		  }
 	     }
 	} else {
 	    out[i] = 0;
@@ -88,6 +102,13 @@ void dj_process(dj *l) {
      audioclient_process_capture(l->audio, l->s->buffer);
      if (l->audio->capturing) l->w->update = 1;
      window_mainLoop(l->w);
+     if (l->autoplay) {
+	  l->autoplay = 0;
+	  song_load(songlist_songat(l->s->l->sl, l->s->l->sl->playing),
+		    l->s->buffer);
+	  l->s->playing = 1;
+	  l->w->update = 1;
+     }
 }
 
 void dj_free(dj *l) {
